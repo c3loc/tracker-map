@@ -1,0 +1,4 @@
+DEBUG = True
+SQLITE_DB = "db.sqlite"
+SECRET_KEY = ""
+API_KEY = ""

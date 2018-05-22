@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		{% block header %}
+		<title>c3loc {% block title %}{% for n in navbar if ((n.visible or isadmin()) and (endpoint == request.endpoint)) %}- {{ n.name }}{% endfor %}{% endblock %}</title>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<link rel="icon" type="image/png" href="{{url_for('static', filename='favicon.png')}}">
+		<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+		<link rel="stylesheet" href="{{url_for('static', filename='bootstrap/bootstrap.css')}}">
+		<link rel="stylesheet" href="{{url_for('static', filename='jquery/ui/jquery-ui.min.css')}}">
+		<link rel="stylesheet" href="{{url_for('static', filename='fontawesome/fontawesome-all.css')}}">
+		<link rel="stylesheet" href="{{url_for('static', filename='leaflet/leaflet.css')}}" />
+		<link rel="stylesheet" href="{{url_for('static', filename='style.css')}}" />
+		
+		<script src="{{url_for('static', filename='leaflet/leaflet.js')}}"></script>
+		<script src="{{url_for('static', filename='jquery/jquery-3.3.1.min.js')}}"></script>
+		<script src="{{url_for('static', filename='jquery/ui/jquery-ui.min.js')}}"></script>
+		<script src="{{url_for('static', filename='bootstrap/bootstrap.bundle.min.js')}}"></script>
+		{% endblock %}
+	</head>
+	<body>
+	{% block navbar %}
+	{% endblock %}
+		<div class="container-fluid" style="margin-bottom: 30px;">
+			<div class="row mt-1">
+				<div class="col">
+					{% block alerts %}
+						{% for msg in get_flashed_messages(category_filter=["message"]) %}
+						<div class="hidden-print alert alert-danger" role="alert">{{ msg|safe }}</div>
+						{% endfor %}
+					{% endblock %}
+					{% block content %}
+					{% endblock %}
+				</div>
+			</div>
+		</div>
+		{% block modals %}
+		<div class="modal fade" id="modal_apierror" role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal">&times;</button>
+						<h4 style="color:red;"><span class="fa fa-exclamation"></span> Error</h4>
+					</div>
+					<div class="modal-body">
+					</div>
+					<div class="modal-footer">
+					</div>
+				</div>
+			</div>
+		</div> 
+		{% endblock %}
+	<script>
+		$( function () {
+			$('[data-toggle="tooltip"]').tooltip(
+			{ 
+				trigger: 'hover',
+				html: true
+			});
+		});	
+	</script>
+	</body>
+</html>

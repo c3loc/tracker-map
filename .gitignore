@@ -1,0 +1,14 @@
+*.swp
+config.py
+__pycache__
+*.sqlite
+files
+files/*
+static/500.html
+nginx.err.log
+nginx.log
+nginx.pid
+nginx.conf
+uwsgi.sock
+.coverage
+htmlcov/
