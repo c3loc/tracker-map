@@ -2,16 +2,12 @@ from flask import Flask, render_template, render_template_string, g, session, Re
 from functools import wraps
 from socket import gethostname
 import sqlite3
-import hashlib
 import locale
 import random
 import string
 import os
 import datetime
 import json
-import subprocess
-import base64
-import struct
 
 locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
 
@@ -95,7 +91,7 @@ def modify(operation, *params):
 
 @app.template_global()
 def isadmin(*args):
-				return session.get('loggedin', False)
+	return session.get('loggedin', False)
 
 @app.template_filter()
 def tracker(id):
@@ -125,7 +121,6 @@ def admin_required(func):
 	return decorator
 
 csrf_endpoints = []
-
 def csrf_protect(func):
 	csrf_endpoints.append(func.__name__)
 	@wraps(func)
@@ -152,69 +147,6 @@ def csrf_inject(endpoint, values):
 		return
 	values['_csrf_token'] = session['_csrf_token']
 
-def api_token_required(func):
-	@wraps(func)
-	def decorator(*args, **kwargs):
-		if 'apikey' in request.values:
-			token = request.values['apikey']
-		elif request.get_json() and ('apikey' in request.get_json()):
-			token = request.get_json()['apikey']
-		elif 'apikey' in kwargs:
-			token = kwargs['apikey']
-			del(kwargs['apikey'])
-		else:
-			token = None
-		
-		if not token == config.get('API_KEY', [None]):
-			return 'Permission denied', 403
-		else:
-			return func(*args, **kwargs)
-	return decorator
-
-def addposition(lon, lat, bat, trackerid, gateway, time=None, rssi=0, snr=0):
-	if not time:
-		time = datetime.datetime.now().timestamp()
-	if not len(query('SELECT id FROM `tracker` WHERE id = ?', trackerid)) > 0:
-		query('INSERT INTO `tracker` (id, name, info) VALUES (?, ?, ?)', trackerid, trackerid, '')
-	if not len(query('SELECT id FROM `gateway` WHERE name = ?', gateway)) > 0:
-		query('INSERT INTO `gateway` (name, info, lon, lat) VALUES (?, ?, ?, ?)', gateway, '', 0, 0)
-	query('INSERT INTO `position` (time, tracker_id, lat, lon, bat, gateway, rssi, snr) VALUES (CAST(? as INT), ?, ?, ?, ?, ?, ?, ?)', time, trackerid, lat, lon, bat, gateway, rssi, snr)
-	pass
-
-@app.route("/gateway/push_lora")
-@api_token_required
-def gateway_push_lora():
-	data = request.json.get('data')
-	gateway = request.json.get('gateway')
-	if not data or not gateway:
-		return 'Bad Request', 400
-	data = base64.b64decode(data)
-	lat, lon, bat, mac = struct.unpack("<ffBL", data)
-	addposition(lon, lat, bat, mac, gateway, snr=request.json.get('snr'), rssi=request.json.get('rssi'))
-	return 'OK'
-
-@app.route("/gateway/push_ulogger/<id>/<apikey>/client/index.php", methods=['POST'])
-@api_token_required
-def gateway_push_ulogger(id):
-	action = request.values.get('action')
-	if action == 'auth':
-		user = request.values.get('user')
-		password = request.values.get('pass')
-		return jsonify({'error': False})
-	elif action == 'addtrack':
-		track = request.values.get('track')
-		return jsonify({'error': False, 'trackid': 1})
-	elif action == 'addpos':
-		lon = request.values.get('lon')
-		lat = request.values.get('lat')
-		time = int(request.values.get('time'))
-		accuracy = float(request.values.get('accuracy'))
-		altitude = float(request.values.get('altitude', -1))
-		provider = request.values.get('provider')
-		addposition(lon, lat, 0, id, 'Android', time=time)
-		return jsonify({'error': False})
-	return 'ok'
-
 @app.route("/tracker/edit")
 @csrf_protect
 def tracker_edit():
@@ -231,17 +163,6 @@ def tracker_edit():
 	if group:
 		query('UPDATE `tracker` SET `group` = ? WHERE id = ?', group, id)
 	return 'OK'
-
-@app.route("/tracker/history")
-def tracker_history():
-	id = request.values.get('id')
-	start = int(request.values.get('start', 0))
-	until = int(request.values.get('until', datetime.datetime.now().timestamp()))
-	output = []
-	for i in query("SELECT lon, lat, CAST(time as INT) AS time FROM `position` WHERE tracker_id = ? ORDER BY time", id):
-		if i['time'] >= start and i['time'] <= until:
-			output.append(i)
-	return jsonify(output)
 
 @app.route("/")
 def index():
@@ -262,6 +183,17 @@ def index():
 			timeslider = timeslider,
 			groupfilter = groupfilter
 		)
+
+@app.route("/tracker/history")
+def tracker_history():
+	id = request.values.get('id')
+	start = int(request.values.get('start', 0))
+	until = int(request.values.get('until', datetime.datetime.now().timestamp()))
+	output = []
+	for i in query("SELECT id, lon, lat, CAST(time as INT) AS time, rssi, snr FROM `position` WHERE tracker_id = ? ORDER BY time", id):
+		if i['time'] >= start and i['time'] <= until:
+			output.append(i)
+	return jsonify(output)
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -298,3 +230,5 @@ def logout():
 	session.pop('logindate', None)
 	session.pop('loggedin', None)
 	return redirect(request.values.get('ref', url_for('index')))
+
+import api
