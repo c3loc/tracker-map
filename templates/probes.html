@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>#</th>
+				<th>time</th>
+				<th>name</th>
+				<th>lon</th>
+				<th>lat</th>
+				<th>rssi</th>
+				<th>snr</th>
+				<th>bat</th>
+			</tr>
+		</thead>
+		<tbody id="probelist">
+		</tbody>
+	</table>
+</div>
+<script>
+	if (!String.prototype.format) {
+		String.prototype.format = function() {
+			var args = arguments;
+			return this.replace(/{(\d+)}/g, function(match, number) { 
+				return (typeof args[number] != 'undefined') ? args[number] : match;
+			});
+		};
+	}
+	var highestId = -1;
+	var trackerList = {}
+	var trackerIdToName = function(id) {
+		if (id in trackerList) {
+			return trackerList[id]['name'];
+		} else {
+			$.ajax({url: "{{ url_for('tracker') }}"+"/"+id, async: false})
+			.done(function(data) {
+				trackerList[id] = data[0];
+			})
+			if (id in trackerList) {
+				return trackerIdToName(id);
+			} else {
+				return "unknown tracker (id: {0})".format(id);
+			}
+		}
+	};
+	var addDataToTable = function (data) {
+		if (data['id'] > highestId) {
+			highestId = data['id'];
+		}
+		$('#probelist').prepend("<tr data-id=\"{0}\"><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td><td>{7}</td></tr>".format(
+			data['id'],
+			new Date(data['time'] *1000).toLocaleString('de-DE'),
+			trackerIdToName(data['tracker_id']),
+			data['lon'],
+			data['lat'],
+			data['rssi'],
+			data['snr'],
+			data['bat'],
+		));
+
+	};
+	var update = function() {
+		$.ajax("{{ url_for('tracker_probes') }}"+(highestId > 0 ? "/"+highestId : ""))
+		.done(function(data) {
+			for (i in data) {
+				addDataToTable(data[i]);
+			}
+		})
+		.always(function() {
+			setTimeout(update, 1000);
+		});
+	};
+	update();
+</script>
+{% endblock %}

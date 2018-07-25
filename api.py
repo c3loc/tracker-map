@@ -58,3 +58,18 @@ def gateway_push_ulogger(id):
 		addposition(lon, lat, 0, id, 'Android', time=time)
 		return jsonify({'error': False})
 	return 'ok'
+
+@app.route("/tracker/<int:trackerid>/probes")
+@app.route("/tracker/<int:trackerid>/probes/<int:after>")
+@app.route("/tracker/probes")
+@app.route("/tracker/probes/<int:after>")
+def tracker_probes(trackerid=-1, after=-1):
+	output = []
+	for i in query("SELECT id, lon, lat, CAST(time as INT) AS time, rssi, snr, tracker_id, bat FROM `position` WHERE (tracker_id = ? OR ? = -1) AND (id > ?) ORDER BY id LIMIT 500", trackerid, trackerid, after):
+		output.append(i)
+	return jsonify(output)
+
+@app.route("/tracker/<int:id>")
+@app.route("/tracker")
+def tracker(id=-1):
+	return jsonify(query("SELECT * FROM tracker WHERE (id = ?) OR (? = -1)", id, id))

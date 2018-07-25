@@ -231,4 +231,8 @@ def logout():
 	session.pop('loggedin', None)
 	return redirect(request.values.get('ref', url_for('index')))
 
+@app.route("/probes")
+def probes():
+	return render_template('probes.html')
+
 import api
