@@ -8,6 +8,7 @@ import string
 import os
 import datetime
 import json
+from db import query, modify, init_db
 
 locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
 
@@ -30,68 +31,67 @@ def load_config_file():
 		app.jinja_env.auto_reload = True
 	if not config['SECRET_KEY'] or not len(config['SECRET_KEY']) > 32:
 		config['SECRET_KEY'] = os.urandom(128)
-
-def init_db():
-	db = sqlite3.connect(config['SQLITE_DB'])
-	cur = db.cursor()
-	with app.open_resource('schema.sql', mode='r') as schema_file:
-		cur.executescript(schema_file.read())
-	db.commit()
-	db.close()
-
 load_config_file()
-init_db()
+init_db(app)
 
 def date_json_handler(obj):
 	return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
-def get_dbcursor():
-	if 'db' not in g:
-		g.db = sqlite3.connect(config['SQLITE_DB'], detect_types=sqlite3.PARSE_DECLTYPES)
-		g.db.isolation_level = None
-	if not hasattr(request, 'db'):
-		request.db = g.db.cursor()
-	return request.db
-
-@app.teardown_request
-def commit_db(*args):
-	if hasattr(request, 'db'):
-		request.db.close()
-		g.db.commit()
-
-@app.teardown_appcontext
-def close_db(*args):
-	if 'db' in g:
-		g.db.close()
-		del g.db
-
-def query(operation, *params, delim="sep"):
-	cur = get_dbcursor()
-	cur.execute(operation, params)
-	rows = []
-	rows = cur.fetchall()
-	res = []
-	for row in rows:
-		res.append({})
-		ptr = res[-1]
-		for col, desc in zip(row, cur.description):
-			name = desc[0].split('.')[-1].split(':')[0]
-			if name == delim:
-				ptr = res[-1][col] = {}
-				continue
-			if type(col) == str:
-				col = col.replace('\\n', '\n').replace('\\r', '\r')
-			ptr[name] = col
-	return res
-
-def modify(operation, *params):
-	cur = get_dbcursor()
-	cur.execute(operation, params)
-	return cur.lastrowid
-
 @app.template_global()
 def isadmin(*args):
 	return session.get('loggedin', False)
+
+admin_endpoints = []
+def admin_required(func):
+	admin_endpoints.append(func.__name__)
+	@wraps(func)
+	def decorator(*args, **kwargs):
+		if not isadmin():
+			flash('You need to be logged in to do that!')
+			return redirect(url_for('login', ref=request.url))
+
+		else:
+			return func(*args, **kwargs)
+	return decorator
+
+csrf_endpoints = []
+def csrf_protect(func):
+	csrf_endpoints.append(func.__name__)
+	@wraps(func)
+	def decorator(*args, **kwargs):
+		if '_csrf_token' in request.values:
+			token = request.values['_csrf_token']
+		elif request.get_json() and ('_csrf_token' in request.get_json()):
+			token = request.get_json()['_csrf_token']
+		else:
+			token = None
+		if app.testing:
+			return func(*args, **kwargs)
+		if not ('_csrf_token' in session) or (session['_csrf_token'] != token ) or not token:
+			return 'csrf test failed', 403
+		else:
+			return func(*args, **kwargs)
+	return decorator
+
+@app.url_defaults
+def csrf_inject(endpoint, values):
+	if not '_csrf_token' in session:
+		session['_csrf_token'] = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(64))
+	if endpoint not in csrf_endpoints or not session.get('_csrf_token'):
+		return
+	values['_csrf_token'] = session['_csrf_token']
+
+app.jinja_env.globals['navbar'] = []
+# iconlib can be 'bootstrap'
+# ( see: http://getbootstrap.com/components/#glyphicons )
+# or 'fa'
+# ( see: http://fontawesome.io/icons/ )
+def register_navbar(name, iconlib='bootstrap', icon=None, visible=False):
+	def wrapper(func):
+		endpoint = func.__name__
+		app.jinja_env.globals['navbar'].append((endpoint, name, iconlib, icon, visible))
+		return func
+	return wrapper
 
 @app.template_filter()
 def tracker(id):
@@ -231,6 +231,7 @@ def logout():
 	session.pop('loggedin', None)
 	return redirect(request.values.get('ref', url_for('index')))
 
+@register_navbar('probes', icon='list', iconlib='fa', visible=True)
 @app.route("/probes")
 def probes():
 	return render_template('probes.html')
