@@ -164,25 +164,6 @@ def tracker_edit():
 		query('UPDATE `tracker` SET `group` = ? WHERE id = ?', group, id)
 	return 'OK'
 
-@app.route("/")
-def index():
-	timeslider=query('SELECT min(time) as start, max(time) as until FROM `position`')
-	if len(timeslider) == 0:
-		timeslider = {'start': datetime.datetime.now(), 'until': datetime.datetime.now()}
-	else:
-		timeslider = timeslider[0]
-	if not timeslider['until']:
-		timeslider['until'] = 0
-	if not timeslider['start']:
-		timeslider['start'] = 0
-	groupfilter = request.values.get('groupfilter', '')
-	return render_template('index.html',
-			pos = query('SELECT * FROM `position` GROUP BY tracker_id ORDER BY time'),
-			tracker = query('SELECT * FROM `tracker` WHERE `group` = ? OR ? == ""', groupfilter, groupfilter),
-			gateways = query('SELECT * FROM `gateway`'),
-			timeslider = timeslider,
-			groupfilter = groupfilter
-		)
 
 @app.route("/tracker/history")
 def tracker_history():
@@ -231,9 +212,33 @@ def logout():
 	session.pop('loggedin', None)
 	return redirect(request.values.get('ref', url_for('index')))
 
+@register_navbar('Overview', icon='globe', iconlib='fa', visible=True)
+@app.route("/")
+def index():
+	timeslider=query('SELECT min(time) as start, max(time) as until FROM `position`')
+	if len(timeslider) == 0:
+		timeslider = {'start': datetime.datetime.now(), 'until': datetime.datetime.now()}
+	else:
+		timeslider = timeslider[0]
+	if not timeslider['until']:
+		timeslider['until'] = 0
+	if not timeslider['start']:
+		timeslider['start'] = 0
+	groupfilter = request.values.get('groupfilter', '')
+	return render_template('overview.html',
+			pos = query('SELECT * FROM `position` GROUP BY tracker_id ORDER BY time'),
+			tracker = query('SELECT * FROM `tracker` WHERE `group` = ? OR ? == ""', groupfilter, groupfilter),
+			gateways = query('SELECT * FROM `gateway`'),
+			timeslider = timeslider,
+			groupfilter = groupfilter
+		)
+
 @register_navbar('probes', icon='list', iconlib='fa', visible=True)
 @app.route("/probes")
 def probes():
-	return render_template('probes.html')
+	try:
+		return render_template('probes.html', lasttrackerid=query("SELECT id FROM `position` ORDER BY id DESC LIMIT 1")[0]['id'])
+	except:
+		return render_template('probes.html', lasttrackerid=-1)
 
 import api
