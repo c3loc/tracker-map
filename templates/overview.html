@@ -1,61 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="row p-0 m-0">
-	<div class="col-md-6 col-xs-12">
+	<div class="col-md-7 col-xs-12">
 		<div id="mapid" style="height: 90vh;"></div>
 	</div>
-	<div class="col-md-6 col-xs-12">
-		<label for="slider-amount">Time range for history:</label>
-		<input type="text" id="slider-amount" readonly style="border:0; color:#f6931f; font-weight:bold;" class="w-100">
-		<div id="slider-range"></div>
+	<div class="col-md-5 col-xs-12" style="height: 90vh; overflow-y: scroll;">
 		<label for="groupfilter">Only show trackers in this group: (empty to show all)</label>
 		<input list="groups" id="groupfilter" onchange="filtergroups(this)" value="{{ groupfilter }}">
 		<h2>Tracker</h2>
-		<div class="list-group">
-			<datalist id="groups">
-				{% for g, trash in tracker|groupby('group') %}
-				<option value="{{ g }}">
-				{% endfor %}
-			</datalist>
-			{% for i in tracker %}
-			<div class="list-group-item flex-column align-items-start">
-				<a href="javascript:map.panTo([ {{ (i.id|tracker).lat }}, {{ (i.id|tracker).lon }}]);tracker[{{ i.id }}].openPopup();" class="list-group-item-action">
-					<div class="d-flex w-100 justify-content-between">
-						<h5 class="mb-1">{{ i.name }}</h5>
-						<small class="text-muted">#{{ i.id }}</small>
-						<small class="text-muted">Last update: {{ datetime.datetime.fromtimestamp((i.id|tracker).lastcall|int) }}</small>
-						<span class="badge badge-primary badge-pill">{{ (i.id|tracker).bat }}</span>
-					</div>
-					<p class="mb-1">{{ i.info }}</p>
-				</a>
-				<div class="w-100 justify-content-between">
-					<button data-id="{{ i.id }}" data-name="{{ i.name }}" data-type="name" onclick="edittracker(this)" class="btn">Edit name</button>
-					<button data-id="{{ i.id }}" data-info="{{ i.info }}" data-type="info" onclick="edittracker(this)" class="btn">Edit info</button>
-					<span>
-						<label>Group:
-							<input list="groups" data-id="{{ i.id }}" data-type="group" onchange="edittracker(this)" value="{{ i.group|d('') }}">
-						</label>
-					</span>
-					<input type="checkbox" id="tracker_history_{{ i.id }}" onChange="trackerhistory(this)" data-id="{{ i.id }}">
-					<label for="tracker_history_{{ i.id }}">
-						Show history
-					</label>
-				</div>
-			</div>
+		<datalist id="groups">
+			{% for g, trash in tracker|groupby('group') %}
+			<option value="{{ g }}">
 			{% endfor %}
-		</div>
-		<h2>Gateways</h2>
-		<div class="list-group">
-			{% for i in gateways %}
-			<a href="javascript:map.panTo([ {{ i.lat }}, {{ i.lon }}]);" class="list-group-item list-group-item-action flex-column align-items-start">
-				<div class="d-flex w-100 justify-content-between">
-					<h5 class="mb-1">{{ i.name }}</h5>
-					<small class="text-muted">{{ i.id }}</small>
-				</div>
-				<p class="mb-1">{{ i.info }}</p>
-			</a>
+		</datalist>
+		<table class="table table-striped table-sm table-hover">
+			<thead class="">
+				<tr>
+					<th scope="col">#</th>
+					<th scope="col">name</th>
+					<th scope="col">group</th>
+					<th scope="col">last update</th>
+					<th scope="col">battery (%)</th>
+					<th scope="col"></th>
+				</tr>
+			</thead>
+			<tbody>
+			{% for i in tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker %}
+			<tr class="text-nowrap" id="table-tracker-{{ i.id }}" onClick="jumpToMarker(this)" data-trackerid="{{ i.id }}">
+				<th scope="row">{{ i.id }}</th>
+				<td>{{ i.name }}</td>
+				<td>{{ i.group|d('') }}</td>
+				<td>{{ datetime.datetime.fromtimestamp((i.id|tracker).lastcall|int).strftime("%x, %X") }}</td>
+				<td>{{ (i.id|tracker).bat }}</td>
+				<td>
+					<a href="{{ url_for("tracker", id=i.id) }}"><button data-trackerid="{{ i.id }}"><span class="fa fa-edit" aria-hidden="true"></span></button></a>
+				</td>
+			</tr>
 			{% endfor %}
-		</div>
+			</tbody>
+		</table>
 	</div>
 </div>
 <script>
@@ -70,81 +53,47 @@
 	var tracker = {}
 	var trackerGroup = L.featureGroup();
 	{% for p in pos %}
-		tracker[{{ (p.tracker_id|tracker).id }}] = L.marker([{{ p.lat }}, {{ p.lon }}]).addTo(trackerGroup).bindPopup('<a href="#"><b>{{ (p.tracker_id|tracker).name }}</b></a><br>{{ p.time }}');
+		let tmp = {}
+		tmp['marker'] = L.marker([{{ p.lat }}, {{ p.lon }}]);
+		tmp['marker'].addTo(trackerGroup)
+		tmp['popup'] = L.popup();
+		tmp['marker'].bindPopup(tmp['popup']);
+		tracker[{{ (p.tracker_id|tracker).id }}] = tmp;
 	{% endfor %}
 	trackerGroup.addTo(map);
-	var paths = {}
-	var edittracker = function(btn) {
-		var id = $(btn).data("id");
-		var name = $(btn).data("name");
-		var info = $(btn).data("info");
-		var group = $(btn).val();
-		var type = $(btn).data("type");
-		var newinfo;
-		var newname;
-		if (type == "name") {
-			newname = prompt("New name for tracker #"+id, name);
-		} 
-		if (type == "info") {
-			newinfo = prompt("New info for tracker #"+id, info);
-		} 
-		if (!newname & !newinfo & !group) {
-			return
-		}
-		$.ajax({
-			url: "{{ url_for('tracker_edit') }}",
-			data: {'name': newname, 'info': newinfo, 'id': id, 'group': group}
-		}).done(function() {
-			location.reload();
-		});
-	}
-	var trackerhistory = function(ele) {
-		id = $(ele).data('id');
-		checked = $(ele).is(':checked');
-		if (checked) {
-			updatetrack(id)
-		} else {
-			paths[id].remove();
-			delete paths[id];
-		}
-	}
-	var updatetrack = function(id) {
-			slidervalues = $( "#slider-range" ).slider( "values" )
-			$.ajax({
-				url: "{{ url_for('tracker_history') }}",
-				data: { 'id': id, 'start': parseInt(slidervalues[0]), 'until': parseInt(slidervalues[1]) }
-			}).done(function(e) {
-				if (paths[id]) {
-					paths[id].remove();
-					delete history[id];
-				}
-				paths[id] = L.polyline(e, {color: 'green'});
-				paths[id].addTo(map);
-			});
-	};
-	$(function() {
-		var min = new Date({{ (timeslider.start) * 1000 }}).getTime() / 1000;
-		var max = new Date({{ (timeslider.until) * 1000 }}).getTime() / 1000;
-		$( '#slider-range' ).slider({
-			'range': true,
-			'min': min,
-			'max': max,
-			'values': [min, max],
-			'step': 60,
-			'slide': function( event, ui ) {
-				$( "#slider-amount" ).val( (new Date(ui.values[ 0 ] *1000).toLocaleString('de-DE') ) + " - " + (new Date(ui.values[ 1 ] *1000)).toLocaleString('de-DE') );
-				// update all tracks
-				for (var i in paths) {
-					updatetrack(i)
-				}
-			}
-		});
-		$( "#slider-amount" ).val( (new Date($( "#slider-range" ).slider( "values", 0 )*1000).toLocaleString('de-DE')) +
-			" - " + (new Date($( "#slider-range" ).slider( "values", 1 )*1000)).toLocaleString('de-DE'));
-	});
+
 	$(function(){ map.fitBounds(trackerGroup.getBounds()); map.invalidateSize(); }, 500);
-	var filtergroups = function(ele) {
+	let filtergroups = function(ele) {
 		location.href = '{{ url_for("index") }}?groupfilter='+$(ele).val();
 	};
+	function jumpToMarker(ele) {
+		trackerid = $(ele).data('trackerid');
+		t = tracker[trackerid];
+		t['marker'].openPopup();
+		map.panTo(t['marker'].getLatLng())
+	}
+
+	let updateTrackerData = function (data) {
+		console.log(data)
+		let row = $('#table-tracker-'+data['id']);
+		row.children()[1].innerText = data['name'];
+		row.children()[2].innerText = data['group'];
+		row.children()[3].innerText = new Date(data['time'] *1000).toLocaleString('de-DE');
+		row.children()[4].innerText = data['bat'];
+		tracker[data['id']]['marker'].setLatLng([data['lat'],data['lon']])
+		tmp['popup'].setContent('<a href="#"><b>'+data['name']+'</b></a><br>');
+	};
+	let update = function() {
+		$.ajax("{{ url_for('api_tracker') }}")
+		.done(function(data) {
+			for (i in data) {
+				updateTrackerData(data[i]);
+			}
+		})
+		.always(function() {
+			setTimeout(update, 5000);
+		});
+	};
+	update();
 </script>
 {% endblock %}

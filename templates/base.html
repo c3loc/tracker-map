@@ -33,7 +33,7 @@
 			<div class="collapse navbar-collapse" id="navbarToggler">
 				<ul class="navbar-nav" style="margin-top: 5px;">
 					{% for endpoint, caption, iconlib, gly, visible in navbar if visible or isadmin() %}
-					<li class="nav-item{% if endpoint == request.endpoint %} active"{% endif %}">
+					<li class="nav-item{% if endpoint == request.endpoint %} active{% endif %}">
 							<a class="nav-link" href="{{ url_for(endpoint) }}">
 								{% if gly != '' %}
 									{% if iconlib == 'bootstrap' %}

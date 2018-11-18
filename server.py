@@ -147,24 +147,6 @@ def csrf_inject(endpoint, values):
 		return
 	values['_csrf_token'] = session['_csrf_token']
 
-@app.route("/tracker/edit")
-@csrf_protect
-def tracker_edit():
-	id = request.values.get('id')
-	name = request.values.get('name')
-	info = request.values.get('info')
-	group = request.values.get('group')
-	if not id or (not name and not info and not group):
-		return 'Bad Request', 400
-	if name:
-		query('UPDATE `tracker` SET name = ? WHERE id = ?', name, id)
-	if info:
-		query('UPDATE `tracker` SET info = ? WHERE id = ?', info, id)
-	if group:
-		query('UPDATE `tracker` SET `group` = ? WHERE id = ?', group, id)
-	return 'OK'
-
-
 @app.route("/tracker/history")
 def tracker_history():
 	id = request.values.get('id')
@@ -233,7 +215,30 @@ def index():
 			groupfilter = groupfilter
 		)
 
-@register_navbar('probes', icon='list', iconlib='fa', visible=True)
+@register_navbar('Tracker', icon='list', iconlib='fa', visible=True)
+@app.route("/tracker")
+@app.route("/tracker/<int:id>")
+def tracker(id=None):
+	pass
+
+@app.route("/tracker/<int:id>/edit")
+@csrf_protect
+def tracker_edit(id):
+	name = request.values.get('name')
+	info = request.values.get('info')
+	group = request.values.get('group')
+	if not id or (not name and not info and not group):
+		return 'Bad Request', 400
+	if name:
+		query('UPDATE `tracker` SET name = ? WHERE id = ?', name, id)
+	if info:
+		query('UPDATE `tracker` SET info = ? WHERE id = ?', info, id)
+	if group:
+		query('UPDATE `tracker` SET `group` = ? WHERE id = ?', group, id)
+	return 'OK'
+
+
+@register_navbar('Probes', icon='map-marker', iconlib='fa', visible=True)
 @app.route("/probes")
 def probes():
 	try:

@@ -25,7 +25,7 @@ def api_token_required(func):
 			return func(*args, **kwargs)
 	return decorator
 
-@app.route("/gateway/push_lora")
+@app.route("/api/gateway/push_lora")
 @api_token_required
 def gateway_push_lora():
 	data = request.json.get('data')
@@ -37,7 +37,7 @@ def gateway_push_lora():
 	addposition(lon, lat, bat, mac, gateway, snr=request.json.get('snr'), rssi=request.json.get('rssi'))
 	return 'OK'
 
-@app.route("/gateway/push_ulogger/<id>/<apikey>/client/index.php", methods=['POST'])
+@app.route("/api/gateway/push_ulogger/<id>/<apikey>/client/index.php", methods=['POST'])
 @api_token_required
 def gateway_push_ulogger(id):
 	action = request.values.get('action')
@@ -59,17 +59,21 @@ def gateway_push_ulogger(id):
 		return jsonify({'error': False})
 	return 'ok'
 
-@app.route("/tracker/<int:trackerid>/probes")
-@app.route("/tracker/<int:trackerid>/probes/<int:after>")
-@app.route("/tracker/probes")
-@app.route("/tracker/probes/<int:after>")
-def tracker_probes(trackerid=-1, after=-1):
+@app.route("/api/tracker/<int:trackerid>/probes")
+@app.route("/api//tracker/<int:trackerid>/probes/<int:after>")
+@app.route("/api/tracker/probes")
+@app.route("/api/tracker/probes/<int:after>")
+def api_tracker_probes(trackerid=-1, after=-1):
 	output = []
-	for i in query("SELECT id, lon, lat, CAST(time as INT) AS time, rssi, snr, tracker_id, bat FROM `position` WHERE (tracker_id = ? OR ? = -1) AND (id > ?) ORDER BY id LIMIT 500", trackerid, trackerid, after):
+	for i in query("SELECT id, lon, lat, CAST(time as INT) AS time, rssi, snr, tracker_id, bat FROM `position` WHERE (tracker_id = ? OR ? = -1) AND (id > ?) ORDER BY id LIMIT 5000", trackerid, trackerid, after):
 		output.append(i)
 	return jsonify(output)
 
-@app.route("/tracker/<int:id>")
-@app.route("/tracker")
-def tracker(id=-1):
-	return jsonify(query("SELECT * FROM tracker WHERE (id = ?) OR (? = -1)", id, id))
+@app.route("/api/tracker/<int:id>")
+@app.route("/api/tracker")
+def api_tracker(id=-1):
+	return jsonify(query(
+		"""SELECT * FROM
+			(SELECT tracker.*, position.bat, position.lon, position.lat, position.time FROM tracker JOIN position ON tracker.id = position.tracker_id WHERE (tracker.id = ?) OR (? = -1)  ORDER BY position.time DESC) t
+		GROUP BY t.id"""
+		, id, id))

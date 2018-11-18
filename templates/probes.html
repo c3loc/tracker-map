@@ -33,7 +33,7 @@
 		if (id in trackerList) {
 			return trackerList[id]['name'];
 		} else {
-			$.ajax({url: "{{ url_for('tracker') }}"+"/"+id, async: false})
+			$.ajax({url: "{{ url_for('api_tracker') }}"+"/"+id, async: false})
 			.done(function(data) {
 				trackerList[id] = data[0];
 			})
@@ -61,7 +61,7 @@
 
 	};
 	var update = function() {
-		$.ajax("{{ url_for('tracker_probes') }}"+(highestId > 0 ? "/"+highestId : ""))
+		$.ajax("{{ url_for('api_tracker_probes') }}"+(highestId > 0 ? "/"+highestId : ""))
 		.done(function(data) {
 			for (i in data) {
 				addDataToTable(data[i]);
