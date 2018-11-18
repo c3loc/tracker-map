@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 	<head>
 		{% block header %}
 		<title>c3loc {% block title %}{% for n in navbar if ((n.visible or isadmin()) and (endpoint == request.endpoint)) %}- {{ n.name }}{% endfor %}{% endblock %}</title>
+		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<link rel="icon" type="image/png" href="{{url_for('static', filename='favicon.png')}}">
-		<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
 		<link rel="stylesheet" href="{{url_for('static', filename='bootstrap/bootstrap.css')}}">
@@ -22,8 +22,59 @@
 	</head>
 	<body>
 	{% block navbar %}
+		<nav class="navbar navbar-dark navbar-expand-lg bg-dark">
+			<a class="navbar-brand" href="/" style="padding: 2px;" title="Find My Ameise">
+				<img alt="" src="{{url_for('static', filename='logo.png')}}" style="height: 40px; margin: 4px;" >
+				Find My Ameise
+			</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarToggler">
+				<ul class="navbar-nav" style="margin-top: 5px;">
+					{% for endpoint, caption, iconlib, gly, visible in navbar if visible or isadmin() %}
+					<li class="nav-item{% if endpoint == request.endpoint %} active"{% endif %}">
+							<a class="nav-link" href="{{ url_for(endpoint) }}">
+								{% if gly != '' %}
+									{% if iconlib == 'bootstrap' %}
+										<span aria-hidden="true" class="glyphicon glyphicon-{{ gly }}"></span>
+									{% elif iconlib == 'fa' %}
+										<span aria-hidden="true" class="fa fa-{{ gly }}"></span>
+									{% endif %}
+								{{ caption }}
+								{% endif %}
+							</a>
+						</li>
+					{% endfor %}
+					<li class="navbar-nav">
+						{% if not isadmin() %}
+						<a class="nav-link" href="{{url_for('login', ref=request.url)}}" id="loginpopover" data-container="body" data-toggle="popover" data-placement="bottom">
+							<span class="fa fa-sign-in" aria-hidden="true"></span>
+							Admin area
+						</a>
+						<script>
+							$('#loginpopover').on('click',function(e){
+								e.preventDefault();
+							}).popover(
+									{
+										html:true,
+										title:'Login',
+										content:'<form method="post" action="{{url_for('login', ref=request.values.get('ref', request.url))}}"><input autofocus placeholder="User" name="user" type="text" class="form-control"><input placeholder="Password" name="password" type="password" class="form-control"><br><input type="submit" value="Login" class="btn btn-default"></form>'
+									}
+									)
+						</script>
+						{% else %}
+						<a class="nav-link" href="{{url_for('logout', ref=request.url)}}">
+							{{ session.user }}
+							<span class="glyphicon glyphicon-log-out"></span>
+						</a>
+						{% endif %}
+					</li>
+				</ul>
+			</div>
+		</nav>
 	{% endblock %}
-		<div class="container-fluid" style="margin-bottom: 30px;">
+		<div class="container-fluid mt-1">
 			<div class="row">
 				<div class="col">
 					{% block alerts %}
@@ -50,12 +101,12 @@
 					</div>
 				</div>
 			</div>
-		</div> 
+		</div>
 		{% endblock %}
 	<script>
 		$( function () {
 			$('[data-toggle="tooltip"]').tooltip(
-			{ 
+			{
 				trigger: 'hover',
 				html: true
 			});
