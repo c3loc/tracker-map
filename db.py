@@ -33,7 +33,7 @@ def close_db(*args):
 		g.db.close()
 		del g.db
 
-def query(operation, *params, delim="sep"):
+def query(operation, *params, delim="sep", flatten=False):
 	cur = get_dbcursor()
 	cur.execute(operation, params)
 	rows = []
@@ -50,6 +50,8 @@ def query(operation, *params, delim="sep"):
 			if type(col) == str:
 				col = col.replace('\\n', '\n').replace('\\r', '\r')
 			ptr[name] = col
+	if flatten and len(res) == 1:
+		return res[0]
 	return res
 
 def modify(operation, *params):
