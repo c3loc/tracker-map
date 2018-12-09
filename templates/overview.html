@@ -25,15 +25,15 @@
 				</tr>
 			</thead>
 			<tbody>
-			{% for i in tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker+tracker %}
+			{% for i in tracker %}
 			<tr class="text-nowrap" id="table-tracker-{{ i.id }}" onClick="jumpToMarker(this)" data-trackerid="{{ i.id }}">
 				<th scope="row">{{ i.id }}</th>
 				<td>{{ i.name }}</td>
 				<td>{{ i.group|d('') }}</td>
-				<td>{{ datetime.datetime.fromtimestamp((i.id|tracker).lastcall|int).strftime("%x, %X") }}</td>
+				<td>{{ datetime.datetime.fromtimestamp((i.id|tracker).time|int).strftime("%x, %X") }}</td>
 				<td>{{ (i.id|tracker).bat }}</td>
 				<td>
-					<a href="{{ url_for("tracker", id=i.id) }}"><button data-trackerid="{{ i.id }}"><span class="fa fa-edit" aria-hidden="true"></span></button></a>
+					<a href="{{ url_for("tracker", id=i.id) }}"><button data-trackerid="{{ i.id }}"><span class="fa fa-search" aria-hidden="true"></span></button></a>
 				</td>
 			</tr>
 			{% endfor %}
@@ -52,8 +52,9 @@
 	}).addTo(map);
 	var tracker = {}
 	var trackerGroup = L.featureGroup();
+	let tmp = {}
 	{% for p in pos %}
-		let tmp = {}
+		tmp = {}
 		tmp['marker'] = L.marker([{{ p.lat }}, {{ p.lon }}]);
 		tmp['marker'].addTo(trackerGroup)
 		tmp['popup'] = L.popup();

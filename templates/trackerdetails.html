@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row p-0 m-0">
+	<div class="col-md-7 col-xs-12">
+		<div id="mapid" style="height: 90vh;"></div>
+	</div>
+	<div class="col-md-5 col-xs-12">
+		<form  action="{{ url_for("tracker_edit", id=tracker.id) }}" method="post">
+			<table class="table table-striped table-sm">
+				<tr>
+					<th>ID: </th>
+					<td>{{ tracker.id }}</td>
+				</tr>
+				<tr>
+					<th>Name: </th>
+					<td><input type="text" name="name" value="{{ tracker.name }}" /></td>
+				</tr>
+				<tr>
+					<th>Group: </th>
+					<td><input type="text" list="groups" name="group" value="{{ tracker.group|d('') }}" /></td>
+				</tr>
+				<tr>
+					<th>last update: </th>
+					<td>{{ datetime.datetime.fromtimestamp((tracker.id|tracker).time|int).strftime("%x, %X") }}</td>
+				</tr>
+				<tr>
+					<th>battery: </th>
+					<td>{{ tracker.bat }}</td>
+				</tr>
+				<tr>
+					<th>info: </th>
+					<td><textarea rows="4" cols="50" name="info">{{ tracker.info }}</textarea></td>
+				</tr>
+			</table>
+			<input type="submit" value="save"> <br><br>
+			<input type="checkbox" id="tracker_history_{{ tracker.id }}" onChange="trackerhistory(this)" data-id="{{ tracker.id }}">
+			<label for="tracker_history_{{ tracker.id }}">
+				Show history
+			</label>
+			<label for="slider-amount">Time range for history:</label>
+			<input type="text" id="slider-amount" readonly style="border:0; color:#f6931f; font-weight:bold;" class="w-100">
+			<div id="slider-range"></div>
+		</form>
+	</div>
+</div>
+<datalist id="groups">
+	{% for g in groups %}
+	<option value="{{ g.group }}">
+	{% endfor %}
+</datalist>
+<script>
+	var map = L.map('mapid').setView([51.505, -0.09], 13);
+	L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+		maxZoom: 18,
+		attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+		'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+		'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+		id: 'mapbox.streets'
+	}).addTo(map);
+	var tracker = {}
+	var trackerGroup = L.featureGroup();
+	let tmp = {}
+	tmp['marker'] = L.marker([{{ tracker.lat }}, {{ tracker.lon }}]);
+	tmp['marker'].addTo(trackerGroup)
+	tmp['popup'] = L.popup();
+	tmp['marker'].bindPopup(tmp['popup']);
+	tracker[{{ tracker.id }}] = tmp;
+	trackerGroup.addTo(map);
+	var paths = {};
+;
+	$(function(){ map.fitBounds(trackerGroup.getBounds()); map.invalidateSize(); }, 500);
+	var trackerhistory = function(ele) {
+		id = $(ele).data('id');
+		checked = $(ele).is(':checked');
+		if (checked) {
+			updatetrack(id)
+		} else {
+			paths[id].remove();
+			delete paths[id];
+		}
+	}
+	var updatetrack = function(id) {
+			slidervalues = $( "#slider-range" ).slider( "values" )
+			$.ajax({
+				url: "{{ url_for('tracker_history') }}",
+				data: { 'id': id, 'start': parseInt(slidervalues[0]), 'until': parseInt(slidervalues[1]) }
+			}).done(function(e) {
+				if (paths[id]) {
+					paths[id].remove();
+					delete history[id];
+				}
+				paths[id] = L.polyline(e, {color: 'green'});
+				paths[id].addTo(map);
+			});
+	};
+	$(function() {
+		var min = new Date({{ (timeslider.start) * 1000 }}).getTime() / 1000;
+		var max = new Date({{ (timeslider.until) * 1000 }}).getTime() / 1000;
+		$( '#slider-range' ).slider({
+			'range': true,
+			'min': min,
+			'max': max,
+			'values': [min, max],
+			'step': 60,
+			'slide': function( event, ui ) {
+				$( "#slider-amount" ).val( (new Date(ui.values[ 0 ] *1000).toLocaleString('de-DE') ) + " - " + (new Date(ui.values[ 1 ] *1000)).toLocaleString('de-DE') );
+				// update all tracks
+				for (var i in paths) {
+					updatetrack(i)
+				}
+			}
+		});
+		$( "#slider-amount" ).val( (new Date($( "#slider-range" ).slider( "values", 0 )*1000).toLocaleString('de-DE')) +
+			" - " + (new Date($( "#slider-range" ).slider( "values", 1 )*1000)).toLocaleString('de-DE'));
+	});
+</script>
+{% endblock %}

@@ -93,19 +93,13 @@ def register_navbar(name, iconlib='bootstrap', icon=None, visible=False):
 		return func
 	return wrapper
 
-@app.template_filter()
-def tracker(id):
-	obj = query('SELECT * from `tracker` where id = ?', id)
-	if len(obj) != 1:
-		return {'id': id, 'name': id}
-	pos = query('SELECT lon, lat, time, bat FROM `position` WHERE tracker_id = ? ORDER BY time DESC LIMIT 1', id)
-	if len(pos) != 1:
-		return {'id': id, 'name': id}
-	obj[0]['lat'] = pos[0]['lat']
-	obj[0]['lon'] = pos[0]['lon']
-	obj[0]['bat'] = pos[0]['bat']
-	obj[0]['lastcall'] = pos[0]['time']
-	return obj[0]
+@app.template_filter("tracker")
+def trackerJoinPos(id):
+	return query(
+		"""SELECT * FROM
+			(SELECT tracker.*, position.bat, position.lon, position.lat, position.time FROM tracker JOIN position ON tracker.id = position.tracker_id WHERE (tracker.id = ?) OR (? = -1)  ORDER BY position.time DESC) t
+		GROUP BY t.id"""
+		, int(id), int(id), flatten=True)
 
 admin_endpoints = []
 def admin_required(func):
@@ -197,6 +191,17 @@ def logout():
 @register_navbar('Overview', icon='globe', iconlib='fa', visible=True)
 @app.route("/")
 def index():
+	groupfilter = request.values.get('groupfilter', '')
+	return render_template('overview.html',
+			pos = query('SELECT * FROM `position` GROUP BY tracker_id ORDER BY time'),
+			tracker = query('SELECT * FROM `tracker` WHERE `group` = ? OR ? == ""', groupfilter, groupfilter),
+			groupfilter = groupfilter
+		)
+
+@register_navbar('Tracker', icon='list', iconlib='fa', visible=True)
+@app.route("/tracker")
+@app.route("/tracker/<int:id>")
+def tracker(id=None):
 	timeslider=query('SELECT min(time) as start, max(time) as until FROM `position`')
 	if len(timeslider) == 0:
 		timeslider = {'start': datetime.datetime.now(), 'until': datetime.datetime.now()}
@@ -206,23 +211,16 @@ def index():
 		timeslider['until'] = 0
 	if not timeslider['start']:
 		timeslider['start'] = 0
-	groupfilter = request.values.get('groupfilter', '')
-	return render_template('overview.html',
-			pos = query('SELECT * FROM `position` GROUP BY tracker_id ORDER BY time'),
-			tracker = query('SELECT * FROM `tracker` WHERE `group` = ? OR ? == ""', groupfilter, groupfilter),
-			gateways = query('SELECT * FROM `gateway`'),
-			timeslider = timeslider,
-			groupfilter = groupfilter
-		)
+	if id:
+		return render_template('trackerdetails.html',
+				tracker=trackerJoinPos(id),
+				positions=query('SELECT * FROM `position` WHERE tracker_id=? ORDER BY time', id),
+				groups=query('SELECT distinct(`group`) FROM `tracker`'),
+				timeslider=timeslider)
+	else:
+		return render_template('trackerlist.html', tracker=trackerJoinPos(-1))
 
-@register_navbar('Tracker', icon='list', iconlib='fa', visible=True)
-@app.route("/tracker")
-@app.route("/tracker/<int:id>")
-def tracker(id=None):
-	pass
-
-@app.route("/tracker/<int:id>/edit")
-@csrf_protect
+@app.route("/tracker/<int:id>/edit", methods=['POST'])
 def tracker_edit(id):
 	name = request.values.get('name')
 	info = request.values.get('info')
@@ -235,14 +233,15 @@ def tracker_edit(id):
 		query('UPDATE `tracker` SET info = ? WHERE id = ?', info, id)
 	if group:
 		query('UPDATE `tracker` SET `group` = ? WHERE id = ?', group, id)
-	return 'OK'
+	flash("saved")
+	return tracker(id)
 
 
 @register_navbar('Probes', icon='map-marker', iconlib='fa', visible=True)
 @app.route("/probes")
 def probes():
 	try:
-		return render_template('probes.html', lasttrackerid=query("SELECT id FROM `position` ORDER BY id DESC LIMIT 1")[0]['id'])
+		return render_template('probes.html', lasttrackerid=query("SELECT id FROM `position` ORDER BY id DESC LIMIT 1")['id'])
 	except:
 		return render_template('probes.html', lasttrackerid=-1)
 

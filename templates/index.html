@@ -23,7 +23,7 @@
 					<div class="d-flex w-100 justify-content-between">
 						<h5 class="mb-1">{{ i.name }}</h5>
 						<small class="text-muted">#{{ i.id }}</small>
-						<small class="text-muted">Last update: {{ datetime.datetime.fromtimestamp((i.id|tracker).lastcall|int) }}</small>
+						<small class="text-muted">Last update: {{ datetime.datetime.fromtimestamp((i.id|tracker).time|int) }}</small>
 						<span class="badge badge-primary badge-pill">{{ (i.id|tracker).bat }}</span>
 					</div>
 					<p class="mb-1">{{ i.info }}</p>

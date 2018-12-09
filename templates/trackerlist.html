@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row p-0 m-0">
+	<table class="table table-striped table-sm table-hover">
+		<thead class="">
+			<tr>
+				<th scope="col">#</th>
+				<th scope="col">name</th>
+				<th scope="col">group</th>
+				<th scope="col">last update</th>
+				<th scope="col">info</th>
+				<th scope="col">battery (%)</th>
+				<th scope="col"></th>
+			</tr>
+		</thead>
+		<tbody>
+		{% for i in tracker%}
+		<tr class="text-nowrap" id="table-tracker-{{ i.id }}" onClick="jumpToMarker(this)" data-trackerid="{{ i.id }}">
+			<th scope="row">{{ i.id }}</th>
+			<td>{{ i.name }}</td>
+			<td>{{ i.group|d('') }}</td>
+			<td>{{ datetime.datetime.fromtimestamp((i.id|tracker).time|int).strftime("%x, %X") }}</td>
+			<td>{{ i.info }}</td>
+			<td>{{ (i.id|tracker).bat }}</td>
+			<td>
+				<a href="{{ url_for("tracker", id=i.id) }}"><button data-trackerid="{{ i.id }}"><span class="fa fa-search" aria-hidden="true"></span></button></a>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</div>
+<script>
+</script>
+{% endblock %}
