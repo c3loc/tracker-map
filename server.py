@@ -38,6 +38,10 @@ def date_json_handler(obj):
 	return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
 @app.template_global()
+def maptoken(*args):
+	return config['MAPBOXTOKEN']
+
+@app.template_global()
 def isadmin(*args):
 	return session.get('loggedin', False)
 
