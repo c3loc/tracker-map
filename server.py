@@ -202,16 +202,16 @@ def index():
 @app.route("/tracker")
 @app.route("/tracker/<int:id>")
 def tracker(id=None):
-	timeslider=query('SELECT min(time) as start, max(time) as until FROM `position`')
-	if len(timeslider) == 0:
-		timeslider = {'start': datetime.datetime.now(), 'until': datetime.datetime.now()}
-	else:
-		timeslider = timeslider[0]
-	if not timeslider['until']:
-		timeslider['until'] = 0
-	if not timeslider['start']:
-		timeslider['start'] = 0
 	if id:
+		timeslider=query('SELECT min(time) as start, max(time) as until FROM `position` WHERE tracker_id = ?', id)
+		if len(timeslider) == 0:
+			timeslider = {'start': datetime.datetime.now(), 'until': datetime.datetime.now()}
+		else:
+			timeslider = timeslider[0]
+		if not timeslider['until']:
+			timeslider['until'] = 0
+		if not timeslider['start']:
+			timeslider['start'] = 0
 		return render_template('trackerdetails.html',
 				tracker=trackerJoinPos(id),
 				positions=query('SELECT * FROM `position` WHERE tracker_id=? ORDER BY time', id),
