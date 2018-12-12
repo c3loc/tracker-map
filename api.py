@@ -4,8 +4,6 @@ import hashlib
 import base64
 import struct
 
-from util import *
-
 def api_token_required(func):
 	@wraps(func)
 	def decorator(*args, **kwargs):
