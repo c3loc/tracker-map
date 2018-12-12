@@ -1,7 +1,6 @@
 from flask import Flask, render_template, render_template_string, g, session, Response, redirect, request, url_for, flash, escape, jsonify
 from functools import wraps
 from socket import gethostname
-import sqlite3
 import locale
 import random
 import string
@@ -22,16 +21,18 @@ app.add_template_global(gethostname, name='gethostname')
 app.add_template_global(min, name='min')
 app.add_template_global(max, name='max')
 
-config = app.config
 
 def load_config_file():
+	config = app.config
 	config.from_pyfile('config.py.example', silent=True)
 	config.from_pyfile('config.py', silent=True)
 	if config['DEBUG']:
 		app.jinja_env.auto_reload = True
 	if not config['SECRET_KEY'] or not len(config['SECRET_KEY']) > 32:
 		config['SECRET_KEY'] = os.urandom(128)
-load_config_file()
+	return config
+
+config = load_config_file()
 init_db(app)
 
 def date_json_handler(obj):

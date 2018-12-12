@@ -1,11 +1,10 @@
 from flask import g, request
 import sqlite3
+import server
 
-config = None
 
 def init_db(app):
-	global config
-	config = app.config
+	config = server.config
 	db = sqlite3.connect(config['SQLITE_DB'])
 	cur = db.cursor()
 	with app.open_resource('schema.sql', mode='r') as schema_file:
@@ -17,7 +16,7 @@ def init_db(app):
 
 def get_dbcursor():
 	if 'db' not in g:
-		g.db = sqlite3.connect(config['SQLITE_DB'], detect_types=sqlite3.PARSE_DECLTYPES)
+		g.db = sqlite3.connect(server.config['SQLITE_DB'], detect_types=sqlite3.PARSE_DECLTYPES)
 		g.db.isolation_level = None
 	if not hasattr(request, 'db'):
 		request.db = g.db.cursor()
