@@ -81,8 +81,9 @@
 		row.children()[2].innerText = data['group'];
 		row.children()[3].innerText = new Date(data['time'] *1000).toLocaleString('de-DE');
 		row.children()[4].innerText = data['bat'];
-		tracker[data['id']]['marker'].setLatLng([data['lat'],data['lon']])
+		tmp['marker'].setLatLng([data['lat'],data['lon']])
 		tmp['popup'].setContent('<a href="#"><b>'+data['name']+'</b></a><br>'+data['info']); // Yes, I know you can inject html here. I do not care right now
+		console.log(data, row)
 	};
 	let update = function() {
 		$.ajax("{{ url_for('api_tracker') }}")
