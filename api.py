@@ -72,7 +72,7 @@ def api_tracker_probes(trackerid=-1, after=-1):
 def api_tracker(id=-1):
 	return jsonify(query(
 		"""SELECT * FROM
-			(SELECT tracker.*, position.bat, position.lon, position.lat, position.time FROM tracker JOIN position ON tracker.id = position.tracker_id WHERE (tracker.id = ?) OR (? = -1)  ORDER BY position.time DESC) t
+			(SELECT tracker.*, position.bat, position.lon, position.lat, position.time FROM tracker JOIN position ON tracker.id = position.tracker_id WHERE (tracker.id = ?) OR (? = -1)  ORDER BY position.time ASC) t
 		GROUP BY t.id"""
 		, id, id))
 
